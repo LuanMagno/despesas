@@ -1,34 +1,35 @@
 import json
-import os
-import shutil
-from datetime import datetime
+
+from utils.file_manager import FileManager
 
 
 class FileStorage:
-    def __init__(self, filepath: str):
+    """Responsavel por ler e gravar dados em um arquivo JSON."""
+
+    def __init__(self, filepath: str, file_manager: FileManager | None = None):
         self.filepath = filepath
+        self.file_manager = file_manager or FileManager()
 
     def load(self) -> dict:
-        if not os.path.exists(self.filepath):
+        """Carrega os dados do arquivo JSON; retorna vazio em caso de erro."""
+        if not self.file_manager.exists(self.filepath):
             return {}
         try:
-            with open(self.filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (IOError, json.JSONDecodeError):
+            with open(self.filepath, "r", encoding="utf-8") as file:
+                return json.load(file)
+        except (OSError, json.JSONDecodeError):
             return {}
 
     def save(self, data: dict) -> bool:
+        """Salva um dicionario no arquivo JSON."""
         try:
-            with open(self.filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
+            self.file_manager.ensure_parent_dir(self.filepath)
+            with open(self.filepath, "w", encoding="utf-8") as file:
+                json.dump(data, file, indent=4, ensure_ascii=False)
             return True
-        except IOError:
+        except OSError:
             return False
 
     def backup(self) -> str:
-        if not os.path.exists(self.filepath):
-            return ""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_path = f"{self.filepath}.{timestamp}.bak"
-        shutil.copy2(self.filepath, backup_path)
-        return backup_path
+        """Cria uma copia de seguranca do arquivo atual."""
+        return self.file_manager.backup(self.filepath)

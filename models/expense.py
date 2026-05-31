@@ -1,14 +1,27 @@
-from datetime import datetime
+from dataclasses import dataclass, field
+
+from services.date_service import DateService
+from services.validation_service import ValidationService
 
 
+@dataclass
 class Expense:
-    def __init__(self, amount: float, category: str, date: str = None, description: str = ""):
-        self.amount = float(amount)
-        self.category = category.strip().lower()
-        self.date = date if date else datetime.today().strftime('%Y-%m-%d')
-        self.description = description
+    """Representa uma despesa cadastrada pelo usuario."""
+
+    amount: float
+    category: str
+    date: str | None = None
+    description: str = ""
+    _date_service: DateService = field(default_factory=DateService, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        self.amount = float(self.amount)
+        self.category = self.category.strip().lower()
+        self.date = self.date or self._date_service.today()
+        self.description = self.description.strip()
 
     def to_dict(self) -> dict:
+        """Converte a despesa para um dicionario serializavel em JSON."""
         return {
             "amount": self.amount,
             "category": self.category,
@@ -18,6 +31,7 @@ class Expense:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Expense":
+        """Cria uma despesa a partir de um dicionario."""
         return cls(
             amount=data["amount"],
             category=data["category"],
@@ -26,18 +40,13 @@ class Expense:
         )
 
     def validate(self) -> bool:
-        if self.amount <= 0:
-            return False
-        if not self.category.strip():
-            return False
-        try:
-            datetime.strptime(self.date, '%Y-%m-%d')
-        except ValueError:
-            return False
-        return True
+        """Verifica se a despesa possui valor, categoria e data validos."""
+        validator = ValidationService()
+        return (
+            validator.validate_amount(self.amount)
+            and validator.validate_category_name(self.category)
+            and validator.validate_date(self.date)
+        )
 
     def __str__(self) -> str:
-        return (
-            f"{self.date} - {self.category.capitalize()}: "
-            f"R${self.amount:.2f} ({self.description})"
-        )
+        return f"{self.date} - {self.category.capitalize()}: R${self.amount:.2f} ({self.description})"

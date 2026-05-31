@@ -1,41 +1,45 @@
 from models.budget import Budget
+from repositories.budget_repository import BudgetRepository
+from services.validation_service import ValidationService
 
 
 class BudgetService:
-    def __init__(self, storage):
-        self.storage = storage
-        self._budgets: list = []
-        self._load()
+    """Executa regras de negocio relacionadas a orcamentos."""
 
-    def _load(self):
-        data = self.storage.load()
-        self._budgets = [Budget.from_dict(b) for b in data.get("budgets", [])]
+    def __init__(self, repository_or_storage, validator: ValidationService | None = None):
+        if isinstance(repository_or_storage, BudgetRepository):
+            self.repository = repository_or_storage
+        else:
+            self.repository = BudgetRepository(repository_or_storage)
+        self.validator = validator or ValidationService()
 
-    def _save(self):
-        data = self.storage.load()
-        data["budgets"] = [b.to_dict() for b in self._budgets]
-        self.storage.save(data)
+    def set_budget(self, budget: Budget) -> bool:
+        """Cria ou atualiza o orcamento de uma categoria."""
+        if not self.validator.validate_category_name(budget.category):
+            return False
+        if not self.validator.validate_amount(budget.limit):
+            return False
+        return self.repository.upsert(budget)
 
-    def set_budget(self, budget: Budget) -> None:
-        for i, b in enumerate(self._budgets):
-            if b.category == budget.category:
-                self._budgets[i] = budget
-                self._save()
-                return
-        self._budgets.append(budget)
-        self._save()
-
-    def get_budget(self, category: str):
-        for b in self._budgets:
-            if b.category == category.strip().lower():
-                return b
-        return None
+    def get_budget(self, category: str) -> Budget | None:
+        """Busca o orcamento de uma categoria."""
+        if not self.validator.validate_category_name(category):
+            return None
+        return self.repository.find_by_category(category)
 
     def check_overspend(self, category: str, spent: float) -> bool:
+        """Retorna True quando o gasto ultrapassa o orcamento."""
         budget = self.get_budget(category)
         if budget is None:
             return False
         return not budget.check_limit(spent)
 
-    def get_all(self) -> list:
-        return list(self._budgets)
+    def delete(self, category: str) -> bool:
+        """Remove o orcamento de uma categoria."""
+        if not self.validator.validate_category_name(category):
+            return False
+        return self.repository.delete(category)
+
+    def get_all(self) -> list[Budget]:
+        """Retorna todos os orcamentos cadastrados."""
+        return self.repository.list_all()
