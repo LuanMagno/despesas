@@ -1,0 +1,18 @@
+# Dados gerados em tempo de execução
+expenses.json
+*.bak
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+
+# Cache do pytest e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Configurações locais do Claude
+.claude/
+
+# Script utilitário de geração do documento
+gerar_documento.py
