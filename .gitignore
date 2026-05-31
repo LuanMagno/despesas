@@ -1,4 +1,4 @@
-# Dados gerados em tempo de execução
+# Dados gerados em tempo de execucao
 expenses.json
 *.bak
 
@@ -11,8 +11,8 @@ __pycache__/
 .coverage
 htmlcov/
 
-# Configurações locais do Claude
+# Configuracoes locais do Claude
 .claude/
 
-# Script utilitário de geração do documento
+# Script utilitario de geracao do documento
 gerar_documento.py
